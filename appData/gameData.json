@@ -1,0 +1,13 @@
+{
+    "games": {
+        "gameId": {
+            "gameStatus": 0,
+            "gameUsers": [],
+            "gameQuestion": ""
+        }
+    },
+    "appData": {
+        "activeUsers": 0,
+        "activeGames": 0
+    }
+}
