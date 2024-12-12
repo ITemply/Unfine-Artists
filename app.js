@@ -22,6 +22,31 @@ app.get('/', async function(request, response) {
     response.render('index')
 })
 
+app.get('/host', async function(request, response) {
+    response.cookie('unfine-artist', 'Extremely')
+    console.log('Sending [GET]: /host')
+    response.render('host')
+})
+
+app.get('/join', async function(request, response) {
+    response.cookie('unfine-artist', 'Extremely')
+    console.log('Sending [GET]: /join')
+    response.render('join')
+})
+
+app.get('/game', async function(request, response) {
+    response.cookie('unfine-artist', 'Extremely')
+
+    const ingameCheck = request.cookies.ingame
+    if (ingameCheck) {
+        console.log('Sending [GET]: /game')
+        response.render('game')
+    } else {
+        response.redirect('/join')
+        return
+    }
+})
+
 server.listen(3000, () => {
     console.log('Unfine Artists started on port 3000. http://127.0.0.1:3000/')
 })
