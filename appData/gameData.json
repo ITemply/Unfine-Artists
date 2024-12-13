@@ -3,7 +3,10 @@
         "gameId": {
             "gameStatus": 0,
             "gameUsers": [],
-            "gameQuestion": ""
+            "gameBlacklist": [],
+            "gameQuestion": "",
+            "gameHost": "",
+            "gameCreation": 0
         }
     },
     "appData": {
