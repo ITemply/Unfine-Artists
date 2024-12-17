@@ -18,7 +18,7 @@ const getGameId = async function() {
         return
     }
 
-    console.log(gameId)
+    document.getElementById('gameId').innerHTML = 'gameId: ' + gameId
 }
 
 document.getElementById('idButton').onclick = async function() {

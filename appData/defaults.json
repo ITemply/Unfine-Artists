@@ -1,0 +1,16 @@
+{
+    "games": {
+        "gameId": {
+            "gameStatus": 0,
+            "gameUsers": [],
+            "gameBlacklist": [],
+            "gameQuestion": "",
+            "gameHost": "",
+            "gameCreation": 0
+        }
+    },
+    "appData": {
+        "activeUsers": 0,
+        "activeGames": 0
+    }
+}

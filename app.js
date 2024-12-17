@@ -4,18 +4,23 @@ const crypto = require('crypto')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const fs = require('fs')
+const cron = require('node-cron');
 
 const app = express()
 const server = require('http').createServer(app)
 const io = require('socket.io')(server, {maxHttpBufferSize: 3.5e6, pingTimeout: 60000})
 
 const dotenv = require('dotenv')
+const { get } = require('node:http')
 dotenv.config()
 
 app.set('views', path.join(__dirname, 'public'))
 app.use('/images', express.static('images'));
 app.set('view engine', 'ejs')
 app.use(express.static(path.join(__dirname, 'public')))
+app.use(bodyParser.json({limit: '35mb'}));
+app.use(bodyParser.urlencoded({limit: '35mb', extended: true}));
+app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
 
 const validChars = process.env.VALID_CHARS
@@ -24,8 +29,12 @@ const getGameData = function(gameId = null) {
     const jsonData = fs.readFileSync('./appData/gameData.json')
     const parsedData = JSON.parse(jsonData)
 
-    if (parsedData['games'][gameId] == null) {
+    if (gameId == null || gameId == undefined) {
         return parsedData['games']
+    }
+
+    if (parsedData['games'][gameId] == null) {
+        return 'No Game Found'
     } else {
         return parsedData['games'][gameId]
     }
@@ -103,7 +112,6 @@ app.get('/', async function(request, response) {
 
 app.get('/host', async function(request, response) {
     const cookieCheck = request.cookies['unfine-artist']
-    console.log(cookieCheck)
     if (cookieCheck == undefined || cookieCheck == null) {
         response.cookie('unfine-artist', hashString(randomString(25)))
     } 
@@ -146,7 +154,10 @@ app.post('/api/getGameId', async function(request, response) {
     await setGameData(idRespone, 'setHost', hostId)
     await setGameData(idRespone, 'setTime', seconds)
 
-    response.cookie('hostinggame', idRespone)
+    response.cookie('hostinggame', idRespone, {
+        maxAge: 3600000
+    })
+
     response.send(JSON.stringify({
         'gameId': idRespone
     }))
@@ -164,19 +175,63 @@ app.get('/join', async function(request, response) {
     response.render('join')
 })
 
-app.get('/game', async function(request, response) {
+app.post('/api/checkGameId', async function(request, response) {
+    const jsonData = request.body
+    const gameId = jsonData['gameId']
+    const checkResponse = getGameData(gameId)
+
+    if (checkResponse == 'No Game Found') {
+        response.send(JSON.stringify({
+            'errorResponse': checkResponse
+        }))
+        return
+    }
+
+    response.cookie('ingame', gameId, {
+        maxAge: 3600000
+    })
+
+    response.send(JSON.stringify({
+        'checkResponse': 'Game Found'
+    }))
+})
+
+app.get('/game/:gameId', async function(request, response) {
     const cookieCheck = request.cookies['unfine-artist']
     if (cookieCheck) {
         response.cookie('unfine-artist', hashString(randomString(25)))
     }
 
     const ingameCheck = request.cookies.ingame
+    const gameId = request.params.gameId
+
     if (ingameCheck) {
-        console.log('Sending [GET]: /game')
+        if (getGameData(ingameCheck) == 'No Game Found' && getGameData(gameId) == 'No Game Found') {
+            response.redirect('/join')
+            return
+        }
+
+        console.log('Sending [GET]: /game/' + gameId)
         response.render('game')
     } else {
         response.redirect('/join')
         return
+    }
+})
+
+cron.schedule('* * * * *', async function() {
+    const gameData = getGameData()
+
+    for (var entry in gameData) {
+        if (entry != 'gameId') {
+            const currentTime = new Date().getTime() / 1000
+            const currentEntry = gameData[entry]
+            const creationTime = currentEntry['gameCreation']
+            
+            if (creationTime < currentTime - 3600) {
+                await setGameData(entry, 'deleteGame')
+            }
+        }
     }
 })
 
