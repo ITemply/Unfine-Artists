@@ -11,7 +11,6 @@ const server = require('http').createServer(app)
 const io = require('socket.io')(server, {maxHttpBufferSize: 3.5e6, pingTimeout: 60000})
 
 const dotenv = require('dotenv')
-const { get } = require('node:http')
 dotenv.config()
 
 app.set('views', path.join(__dirname, 'public'))
@@ -63,10 +62,13 @@ const setGameData = async function(gameId, dataType, data = null) {
         } else if (dataType == 'setStatus') {
             parsedData['games'][gameId]['gameStatus'] = data
         } else if (dataType == 'addUser') {
-            parsedData['games'][gameId]['gameUsers'].push(data)
+            const keys = Object.keys(data)
+            
+            parsedData['games'][gameId]['gameUsers'][keys[0]] = data[keys[0]]
         } else if (dataType == 'deleteUser') {
-            const userPosition = parsedData['games'][gameId]['gameUsers'].indexOf(data)
-            parsedData['games'][gameId]['gameUsers'].splice(userPosition, 1)
+            const keys = Object.keys(data)
+
+            delete parsedData['games'][gameId]['gameUsers'][keys[0]]
         } else if (dataType == 'gameQuestion') {
             parsedData['games'][gameId]['gameQuestion'] = data
         } else if (dataType == 'setBlacklist') {
@@ -167,18 +169,39 @@ app.post('/api/getGameId', async function(request, response) {
 
 app.get('/join', async function(request, response) {
     const cookieCheck = request.cookies['unfine-artist']
-    if (cookieCheck) {
+    if (cookieCheck == undefined || cookieCheck == null) {
         response.cookie('unfine-artist', hashString(randomString(25)))
     } 
 
     console.log('Sending [GET]: /join')
-    response.render('join')
+
+    if (request.cookies.ingame) {
+        response.render('join', {serverData: JSON.stringify({'rejoinGame': request.cookies.ingame, 'allowRejoining': true})})
+        return
+    } else {
+        const gameData = getGameData()
+
+        for (var entry in gameData) {
+            const game = gameData[entry]
+
+            for (var user in game['gameUsers']) {
+                if (user == cookieCheck) {
+                    response.render('join', {serverData: JSON.stringify({'rejoinGame': entry, 'allowRejoining': true})})
+                    return 
+                }
+            }
+        }
+    }
+
+    response.render('join', {serverData: JSON.stringify({'allowRejoining': false})})
 })
 
 app.post('/api/checkGameId', async function(request, response) {
     const jsonData = request.body
     const gameId = jsonData['gameId']
     const checkResponse = getGameData(gameId)
+
+    console.log(checkResponse)
 
     if (checkResponse == 'No Game Found') {
         response.send(JSON.stringify({
@@ -198,12 +221,14 @@ app.post('/api/checkGameId', async function(request, response) {
 
 app.get('/game/:gameId', async function(request, response) {
     const cookieCheck = request.cookies['unfine-artist']
-    if (cookieCheck) {
+    if (cookieCheck == undefined || cookieCheck == null) {
         response.cookie('unfine-artist', hashString(randomString(25)))
-    }
+    } 
 
     const ingameCheck = request.cookies.ingame
     const gameId = request.params.gameId
+
+    var gameData = {}
 
     if (ingameCheck) {
         if (getGameData(ingameCheck) == 'No Game Found' && getGameData(gameId) == 'No Game Found') {
@@ -211,12 +236,58 @@ app.get('/game/:gameId', async function(request, response) {
             return
         }
 
+        const gameData = getGameData(gameId)
+        
+        
+
         console.log('Sending [GET]: /game/' + gameId)
         response.render('game')
     } else {
         response.redirect('/join')
         return
     }
+})
+
+app.post('/joinGame', async function(request, response) {
+    const userIdCookie = request.cookies['unfine-artist']
+    const jsonData = request.body
+    const gameId = jsonData['gameId']
+    const username = jsonData['username']
+    const userId = jsonData['userId']
+
+    const userObject = {}
+    userObject[userId] = {
+        'username': username
+    }
+
+    const gameData = getGameData(gameId)
+
+    if (gameData == 'No Game Found') {
+        response.send(JSON.stringify({
+            'errorResponse': 'No Active Game Found'
+        }))
+        return 
+    }
+
+    for (var entry in gameData['gameUsers']) {
+        const currentUsername = gameData['gameUsers'][entry]['username']
+
+        if (currentUsername == username) {
+            response.send(JSON.stringify({
+                'errorResponse': 'Username Already Taken'
+            }))
+            return 
+        }
+    }
+
+    await setGameData(gameId, 'addUser', userObject)
+
+    response.send(JSON.stringify({
+        'checkedUsername': username, 
+        'ingame': true, 
+        'gameId': gameId, 
+        'userId': userId
+    }))
 })
 
 cron.schedule('* * * * *', async function() {

@@ -5,11 +5,18 @@
     <link rel="stylesheet" href="css/join.css">
 </head>
 
-<body>
+<body onload="onload()">
     <h1>Join Game</h1>
     <input type="text" placeholder="game id" id="gameId">
     <br>
     <input type="button" value="join game" id="joinGameButton">
+
+    <span class="serverData" id="serverData"><%- serverData %></span>
+
+    <div id="rejoinGame" class="rejoinGame">
+        <span id="rejoinText">Rejoin: GameId</span>
+        <input type="button" value="rejoin game" id="rejoinButton">
+    </div>
 
     <script src="js/join.js"></script>
 </body>

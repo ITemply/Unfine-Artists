@@ -2,11 +2,23 @@
     "games": {
         "gameId": {
             "gameStatus": 0,
-            "gameUsers": [],
+            "gameUsers": {},
             "gameBlacklist": [],
             "gameQuestion": "",
             "gameHost": "",
             "gameCreation": 0
+        },
+        "F7Qejs": {
+            "gameStatus": 0,
+            "gameUsers": {
+                "001ecdee3298ab21413d69c40bdbc06b450c2895a14f0e7367f83cc16e361d70": {
+                    "username": "temply"
+                }
+            },
+            "gameBlacklist": [],
+            "gameQuestion": "",
+            "gameHost": "ec528fad31a0010d784de54bd237c1105cbdac309be6baeafc2dfa0511582c2a",
+            "gameCreation": 17344245039.083
         }
     },
     "appData": {
